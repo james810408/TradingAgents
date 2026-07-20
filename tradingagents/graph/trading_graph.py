@@ -142,7 +142,28 @@ class TradingAgentsGraph:
                         print(f"  {role}: {provider}/{model}")
                 except Exception as e:
                     print(f"Warning: Failed to create LLM for {role} ({provider}/{model}): {e}")
-                    # fallback to quick/deep — agent_llms[role] stays unset
+                    # P1-4: research_manager fallback to DeepSeek-V4-Pro
+                    if role == "research_manager":
+                        fb_provider = os.environ.get(
+                            "TRADINGAGENTS_AGENT_RESEARCH_MANAGER_FALLBACK_PROVIDER", ""
+                        )
+                        fb_model = os.environ.get(
+                            "TRADINGAGENTS_AGENT_RESEARCH_MANAGER_FALLBACK_MODEL", ""
+                        )
+                        if fb_provider and fb_model:
+                            try:
+                                fb_client = create_llm_client(
+                                    provider=fb_provider,
+                                    model=fb_model,
+                                    base_url=self.config.get("backend_url"),
+                                    **llm_kwargs,
+                                )
+                                self.agent_llms[role] = fb_client.get_llm()
+                                if self.debug:
+                                    print(f"  {role} (fallback): {fb_provider}/{fb_model}")
+                            except Exception as fb_e:
+                                print(f"Warning: Fallback LLM also failed for {role}: {fb_e}")
+                    # otherwise fallback to quick/deep — agent_llms[role] stays unset
 
         self.memory_log = TradingMemoryLog(self.config)
 
