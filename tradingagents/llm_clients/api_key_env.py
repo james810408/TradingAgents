@@ -26,6 +26,7 @@ PROVIDER_API_KEY_ENV: dict[str, str | None] = {
     "qwen-cn":    "DASHSCOPE_CN_API_KEY",
     "glm":        "ZHIPU_API_KEY",
     "glm-cn":     "ZHIPU_CN_API_KEY",
+    "volcengine": "VOLCENGINE_CODING_API_KEY",
     "minimax":    "MINIMAX_API_KEY",
     "minimax-cn": "MINIMAX_CN_API_KEY",
     "openrouter": "OPENROUTER_API_KEY",

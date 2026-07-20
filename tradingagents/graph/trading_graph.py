@@ -114,6 +114,36 @@ class TradingAgentsGraph:
         self.deep_thinking_llm = deep_client.get_llm()
         self.quick_thinking_llm = quick_client.get_llm()
 
+        # 11-Agent per-role LLM assignment: create a dedicated LLM for each
+        # agent role that has a custom provider/model configured via env vars.
+        # Roles without explicit config fall through to quick/deep defaults.
+        self.agent_llms = {}
+        agent_roles = [
+            "market", "sentiment", "news", "fundamentals",
+            "bull", "bear",
+            "aggressive", "neutral_debator", "conservative",
+            "trader", "research_manager",
+        ]
+        for role in agent_roles:
+            provider_key = f"agent_{role}_provider"
+            model_key = f"agent_{role}_model"
+            provider = self.config.get(provider_key)
+            model = self.config.get(model_key)
+            if provider and model:
+                try:
+                    client = create_llm_client(
+                        provider=provider,
+                        model=model,
+                        base_url=self.config.get("backend_url"),
+                        **llm_kwargs,
+                    )
+                    self.agent_llms[role] = client.get_llm()
+                    if self.debug:
+                        print(f"  {role}: {provider}/{model}")
+                except Exception as e:
+                    print(f"Warning: Failed to create LLM for {role} ({provider}/{model}): {e}")
+                    # fallback to quick/deep — agent_llms[role] stays unset
+
         self.memory_log = TradingMemoryLog(self.config)
 
         # Create tool nodes
@@ -129,6 +159,7 @@ class TradingAgentsGraph:
             self.deep_thinking_llm,
             self.tool_nodes,
             self.conditional_logic,
+            agent_llms=self.agent_llms,
         )
 
         self.propagator = Propagator(

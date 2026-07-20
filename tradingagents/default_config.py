@@ -25,6 +25,29 @@ _ENV_OVERRIDES = {
     "TRADINGAGENTS_GOOGLE_THINKING_LEVEL":   "google_thinking_level",
     "TRADINGAGENTS_OPENAI_REASONING_EFFORT": "openai_reasoning_effort",
     "TRADINGAGENTS_ANTHROPIC_EFFORT":        "anthropic_effort",
+    # 11-Agent per-role model assignment (None -> uses quick/deep default)
+    "TRADINGAGENTS_AGENT_MARKET_PROVIDER":           "agent_market_provider",
+    "TRADINGAGENTS_AGENT_MARKET_MODEL":              "agent_market_model",
+    "TRADINGAGENTS_AGENT_SENTIMENT_PROVIDER":        "agent_sentiment_provider",
+    "TRADINGAGENTS_AGENT_SENTIMENT_MODEL":           "agent_sentiment_model",
+    "TRADINGAGENTS_AGENT_NEWS_PROVIDER":             "agent_news_provider",
+    "TRADINGAGENTS_AGENT_NEWS_MODEL":                "agent_news_model",
+    "TRADINGAGENTS_AGENT_FUNDAMENTALS_PROVIDER":     "agent_fundamentals_provider",
+    "TRADINGAGENTS_AGENT_FUNDAMENTALS_MODEL":        "agent_fundamentals_model",
+    "TRADINGAGENTS_AGENT_BULL_PROVIDER":             "agent_bull_provider",
+    "TRADINGAGENTS_AGENT_BULL_MODEL":                "agent_bull_model",
+    "TRADINGAGENTS_AGENT_BEAR_PROVIDER":             "agent_bear_provider",
+    "TRADINGAGENTS_AGENT_BEAR_MODEL":                "agent_bear_model",
+    "TRADINGAGENTS_AGENT_AGGRESSIVE_PROVIDER":       "agent_aggressive_provider",
+    "TRADINGAGENTS_AGENT_AGGRESSIVE_MODEL":          "agent_aggressive_model",
+    "TRADINGAGENTS_AGENT_NEUTRAL_DEBATOR_PROVIDER":  "agent_neutral_debator_provider",
+    "TRADINGAGENTS_AGENT_NEUTRAL_DEBATOR_MODEL":     "agent_neutral_debator_model",
+    "TRADINGAGENTS_AGENT_CONSERVATIVE_PROVIDER":     "agent_conservative_provider",
+    "TRADINGAGENTS_AGENT_CONSERVATIVE_MODEL":        "agent_conservative_model",
+    "TRADINGAGENTS_AGENT_TRADER_PROVIDER":           "agent_trader_provider",
+    "TRADINGAGENTS_AGENT_TRADER_MODEL":              "agent_trader_model",
+    "TRADINGAGENTS_AGENT_RESEARCH_MANAGER_PROVIDER": "agent_research_manager_provider",
+    "TRADINGAGENTS_AGENT_RESEARCH_MANAGER_MODEL":    "agent_research_manager_model",
 }
 
 
@@ -91,6 +114,29 @@ DEFAULT_CONFIG = _apply_env_overrides({
     "google_thinking_level": None,      # "high", "minimal", etc.
     "openai_reasoning_effort": None,    # "medium", "high", "low"
     "anthropic_effort": None,           # "high", "medium", "low"
+    # 11-Agent per-role model assignment (None -> uses quick/deep default)
+    "agent_market_provider": None,
+    "agent_market_model": None,
+    "agent_sentiment_provider": None,
+    "agent_sentiment_model": None,
+    "agent_news_provider": None,
+    "agent_news_model": None,
+    "agent_fundamentals_provider": None,
+    "agent_fundamentals_model": None,
+    "agent_bull_provider": None,
+    "agent_bull_model": None,
+    "agent_bear_provider": None,
+    "agent_bear_model": None,
+    "agent_aggressive_provider": None,
+    "agent_aggressive_model": None,
+    "agent_neutral_debator_provider": None,
+    "agent_neutral_debator_model": None,
+    "agent_conservative_provider": None,
+    "agent_conservative_model": None,
+    "agent_trader_provider": None,
+    "agent_trader_model": None,
+    "agent_research_manager_provider": None,
+    "agent_research_manager_model": None,
     # Sampling temperature, forwarded to every provider when set. None leaves
     # each provider at its own default. Lower values reduce run-to-run
     # variation on models that honor it; reasoning models largely ignore it
@@ -160,5 +206,20 @@ DEFAULT_CONFIG = _apply_env_overrides({
         ".SS":  "000001.SS",   # Shanghai (SSE Composite)
         ".SZ":  "399001.SZ",   # Shenzhen (SZSE Component)
         "":     "SPY",         # default for US-listed tickers (no suffix)
+    },
+    # Per-agent model mapping (backward-compatible default: all deepseek).
+    # Override via TRADINGAGENTS_AGENT_<ROLE>_PROVIDER / MODEL env vars.
+    "agent_model_mapping": {
+        "market_analyst":          {"provider": "deepseek", "model": "deepseek-v4-pro"},
+        "sentiment_analyst":       {"provider": "deepseek", "model": "deepseek-v4-pro"},
+        "news_analyst":            {"provider": "deepseek", "model": "deepseek-v4-pro"},
+        "fundamentals_analyst":    {"provider": "deepseek", "model": "deepseek-v4-pro"},
+        "bull_researcher":         {"provider": "deepseek", "model": "deepseek-v4-pro"},
+        "bear_researcher":         {"provider": "deepseek", "model": "deepseek-v4-pro"},
+        "aggressive_debator":      {"provider": "deepseek", "model": "deepseek-v4-pro"},
+        "neutral_debator":         {"provider": "deepseek", "model": "deepseek-v4-pro"},
+        "conservative_debator":    {"provider": "deepseek", "model": "deepseek-v4-pro"},
+        "trader":                  {"provider": "deepseek", "model": "deepseek-v4-pro"},
+        "research_manager":        {"provider": "deepseek", "model": "deepseek-v4-pro"},
     },
 })
