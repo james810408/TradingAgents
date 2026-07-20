@@ -37,6 +37,28 @@ def _coerce_optional_float(value):
 
 
 # ---------------------------------------------------------------------------
+# Unified Analyst schema
+# ---------------------------------------------------------------------------
+
+
+class SignalType(str, Enum):
+    bullish = "bullish"
+    bearish = "bearish"
+    neutral = "neutral"
+
+
+class AnalystReport(BaseModel):
+    """统一分析师报告 schema"""
+    signal: SignalType = Field(description="信号方向")
+    confidence: float = Field(ge=0, le=1, description="置信度 0-1")
+    evidence: list[str] = Field(default_factory=list, description="支撑证据")
+    time_horizon: str = Field(default="short", description="时间周期 short/medium/long")
+    risk_flags: list[str] = Field(default_factory=list, description="风险标记")
+    data_freshness: str = Field(default="realtime", description="数据时效性")
+    invalidating_conditions: list[str] = Field(default_factory=list, description="失效条件")
+
+
+# ---------------------------------------------------------------------------
 # Shared rating types
 # ---------------------------------------------------------------------------
 
@@ -323,6 +345,247 @@ class SentimentReport(BaseModel):
             "with concrete evidence so every point adds new signal for the trader."
         ),
     )
+
+
+# ---------------------------------------------------------------------------
+# Quant Factor Analyst
+# ---------------------------------------------------------------------------
+
+
+class SignalDirection(str, Enum):
+    """Directional signal produced by analyst agents."""
+
+    BULLISH = "bullish"
+    BEARISH = "bearish"
+    NEUTRAL = "neutral"
+
+
+class QuantFactorReport(BaseModel):
+    """Structured report produced by the Quant Factor Analyst.
+
+    Evaluates 30 gtja191 factor signals from MarketMind and produces a
+    consolidated factor-level view: are the factors aligning bullishly,
+    bearishly, or mixed for the instrument?
+    """
+
+    signal: SignalDirection = Field(
+        description=(
+            "Overall factor signal direction. Exactly one of bullish / bearish / neutral. "
+            "Use bullish when a majority of factors suggest upward price pressure, "
+            "bearish for downward pressure, and neutral when factors are inconclusive or mixed."
+        ),
+    )
+    confidence: float = Field(
+        ge=0.0, le=1.0,
+        description=(
+            "Confidence in the factor signal, from 0.0 (no confidence) to 1.0 (very confident). "
+            "Based on the proportion of factors aligned with the signal direction and their "
+            "historical reliability as documented in the factor metadata."
+        ),
+    )
+    factor_summary: str = Field(
+        description=(
+            "Summary of the factor analysis, including: (1) which factor categories "
+            "(momentum, value, quality, volatility, etc.) are driving the signal; "
+            "(2) notable factor divergences; (3) any extreme factor readings (>2 std dev)."
+        ),
+    )
+    evidence: list[str] = Field(
+        description=(
+            "Supporting evidence for the signal. Each entry should cite specific factors "
+            "and their values, e.g. 'Factor RSI_14D: 28.3 (oversold, bullish signal)'."
+        ),
+    )
+    risk_flags: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Risk flags raised by the factor analysis. Examples: 'Factor crowding — 70%+ "
+            "of factors in same direction', 'Extreme volatility factor reading', "
+            "'Factor momentum reversal pattern detected'."
+        ),
+    )
+
+
+def render_quant_factor_report(report: QuantFactorReport) -> str:
+    """Render a QuantFactorReport to markdown."""
+    return "\n".join([
+        f"**Quant Factor Signal**: {report.signal.value.upper()}",
+        f"**Confidence**: {report.confidence:.2f}",
+        "",
+        f"**Factor Summary**: {report.factor_summary}",
+        "",
+        "**Evidence**:",
+        *[f"- {e}" for e in report.evidence],
+        "",
+        "**Risk Flags**:",
+        *[f"- {r}" for r in (report.risk_flags or ["None"])],
+    ])
+
+
+# ---------------------------------------------------------------------------
+# Capital Flow Analyst
+# ---------------------------------------------------------------------------
+
+
+class CapitalFlowReport(BaseModel):
+    """Structured report produced by the Capital Flow Analyst.
+
+    Analyses main capital (主力资金) and northbound (北向资金) flow data
+    to assess whether institutional money is flowing into or out of the
+    instrument.
+    """
+
+    signal: SignalDirection = Field(
+        description=(
+            "Overall capital flow signal. Exactly one of bullish / bearish / neutral. "
+            "Use bullish when net inflows are sustained and accelerating, bearish for "
+            "sustained net outflows, and neutral when flows are mixed or flat."
+        ),
+    )
+    confidence: float = Field(
+        ge=0.0, le=1.0,
+        description=(
+            "Confidence in the capital flow signal, from 0.0 to 1.0. Based on the "
+            "magnitude and consistency of flows, data recency, and alignment between "
+            "main capital and northbound flows."
+        ),
+    )
+    capital_flow_summary: str = Field(
+        description=(
+            "Summary of capital flow analysis, covering: (1) main capital net flow direction "
+            "and magnitude; (2) northbound capital flow direction and magnitude; "
+            "(3) flow trend (accelerating, decelerating, reversing); "
+            "(4) comparison to sector peers if available."
+        ),
+    )
+    evidence: list[str] = Field(
+        description=(
+            "Supporting evidence. Should include specific numbers: net inflow/outflow amounts, "
+            "percentage changes, and comparison periods."
+        ),
+    )
+    risk_flags: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Risk flags. Examples: 'Northbound flow reversal — past 3 days of inflows "
+            "reversed by 1 day of heavy outflow', 'Main capital outflow diverges from price uptrend'."
+        ),
+    )
+    main_capital_net: float | None = Field(
+        default=None,
+        description=(
+            "Net main capital (主力资金) flow for the current period, in RMB. "
+            "Positive = net inflow, negative = net outflow."
+        ),
+    )
+    northbound_net: float | None = Field(
+        default=None,
+        description=(
+            "Net northbound (北向资金) flow for the current period, in RMB. "
+            "Positive = net inflow, negative = net outflow."
+        ),
+    )
+
+
+def render_capital_flow_report(report: CapitalFlowReport) -> str:
+    """Render a CapitalFlowReport to markdown."""
+    parts = [
+        f"**Capital Flow Signal**: {report.signal.value.upper()}",
+        f"**Confidence**: {report.confidence:.2f}",
+        "",
+        f"**Capital Flow Summary**: {report.capital_flow_summary}",
+        "",
+        "**Evidence**:",
+        *[f"- {e}" for e in report.evidence],
+        "",
+        "**Risk Flags**:",
+        *[f"- {r}" for r in (report.risk_flags or ["None"])],
+    ]
+    if report.main_capital_net is not None:
+        parts.insert(3, f"**Main Capital Net Flow**: ¥{report.main_capital_net:,.0f}")
+    if report.northbound_net is not None:
+        parts.insert(4, f"**Northbound Net Flow**: ¥{report.northbound_net:,.0f}")
+    return "\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# Sector Rotation Analyst
+# ---------------------------------------------------------------------------
+
+
+class SectorRotationReport(BaseModel):
+    """Structured report produced by the Sector Rotation Analyst.
+
+    Analyses sector rotation data to determine whether the instrument's
+    industry is experiencing capital inflow/outflow relative to other
+    sectors, and identifies rotation trends.
+    """
+
+    signal: SignalDirection = Field(
+        description=(
+            "Sector rotation signal for the instrument's industry. Exactly one of "
+            "bullish / bearish / neutral. Use bullish when the sector is top-ranked "
+            "in capital inflow and momentum, bearish when bottom-ranked or experiencing "
+            "outflows, neutral when middling."
+        ),
+    )
+    confidence: float = Field(
+        ge=0.0, le=1.0,
+        description=(
+            "Confidence in the sector rotation signal, from 0.0 to 1.0. Based on "
+            "the consistency and magnitude of the sector's ranking and flow data."
+        ),
+    )
+    sector_rotation_summary: str = Field(
+        description=(
+            "Summary of sector rotation analysis, covering: (1) the instrument's industry "
+            "ranking among all sectors; (2) top and bottom 3 sectors by capital flow; "
+            "(3) rotation direction (e.g. defensive -> cyclical, growth -> value); "
+            "(4) how the instrument's sector fits into the overall rotation picture."
+        ),
+    )
+    evidence: list[str] = Field(
+        description=(
+            "Supporting evidence. Should cite specific sector rankings, flow amounts, "
+            "and comparison timeframes."
+        ),
+    )
+    risk_flags: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Risk flags. Examples: 'Sector ranking dropped 10+ spots in 5 days', "
+            "'Sector rotation speed accelerating — rapid capital rotation suggests uncertainty'."
+        ),
+    )
+    sector_rank: int | None = Field(
+        default=None,
+        ge=1,
+        description="The instrument's industry rank among all sectors (1 = best).",
+    )
+    sector_count: int | None = Field(
+        default=None,
+        ge=1,
+        description="Total number of sectors in the ranking.",
+    )
+
+
+def render_sector_rotation_report(report: SectorRotationReport) -> str:
+    """Render a SectorRotationReport to markdown."""
+    parts = [
+        f"**Sector Rotation Signal**: {report.signal.value.upper()}",
+        f"**Confidence**: {report.confidence:.2f}",
+        "",
+        f"**Sector Rotation Summary**: {report.sector_rotation_summary}",
+        "",
+        "**Evidence**:",
+        *[f"- {e}" for e in report.evidence],
+        "",
+        "**Risk Flags**:",
+        *[f"- {r}" for r in (report.risk_flags or ["None"])],
+    ]
+    if report.sector_rank is not None and report.sector_count is not None:
+        parts.insert(3, f"**Sector Rank**: {report.sector_rank}/{report.sector_count}")
+    return "\n".join(parts)
 
 
 def render_sentiment_report(report: SentimentReport) -> str:

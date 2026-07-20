@@ -2,6 +2,7 @@ from tradingagents.agents.utils.agent_utils import (
     get_instrument_context_from_state,
     get_language_instruction,
 )
+from tradingagents.agents.utils.quant_risk import generate_risk_report, format_risk_for_prompt
 
 
 def create_conservative_debator(llm):
@@ -21,9 +22,34 @@ def create_conservative_debator(llm):
 
         trader_decision = state["trader_investment_plan"]
 
+        # --- Quant Risk Metrics ---
+        symbol = state.get("company_of_interest", "")
+        try:
+            import subprocess, json
+            result = subprocess.run(
+                ["/root/TradingAgents/venv/bin/python", "/root/market-mind/stockctl.py",
+                 "hist", "--symbol", symbol, "--days", "60", "--json"],
+                capture_output=True, text=True, timeout=15,
+                env={"PYTHONPATH": "/root/market-mind:/root/TradingAgents"}
+            )
+            if result.returncode == 0:
+                data = json.loads(result.stdout)
+                import pandas as pd
+                prices = pd.Series(data.get('close', []))
+                returns = prices.pct_change().dropna()
+                risk_report = generate_risk_report(returns, prices)
+                risk_text = format_risk_for_prompt(risk_report)
+            else:
+                risk_text = "Quant risk data unavailable."
+        except Exception:
+            risk_text = "Quant risk calculation failed."
+        # -------------------------
+
         prompt = f"""As the Conservative Risk Analyst, your primary objective is to protect assets, minimize volatility, and ensure steady, reliable growth. You prioritize stability, security, and risk mitigation, carefully assessing potential losses, economic downturns, and market volatility. When evaluating the trader's decision or plan, critically examine high-risk elements, pointing out where the decision may expose the firm to undue risk and where more cautious alternatives could secure long-term gains. Here is the trader's decision:
 
 {trader_decision}
+
+{risk_text}
 
 Your task is to actively counter the arguments of the Aggressive and Neutral Analysts, highlighting where their views may overlook potential threats or fail to prioritize sustainability. Respond directly to their points, drawing from the following data sources to build a convincing case for a low-risk approach adjustment to the trader's decision:
 

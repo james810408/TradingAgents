@@ -67,7 +67,8 @@ class TradingAgentsGraph:
 
     def __init__(
         self,
-        selected_analysts=("market", "social", "news", "fundamentals"),
+        selected_analysts=("market", "social", "news", "fundamentals",
+                           "quant_factor", "capital_flow", "sector_rotation"),
         debug=False,
         config: dict[str, Any] = None,
         callbacks: list | None = None,
@@ -120,6 +121,7 @@ class TradingAgentsGraph:
         self.agent_llms = {}
         agent_roles = [
             "market", "sentiment", "news", "fundamentals",
+            "quant_factor", "capital_flow", "sector_rotation",
             "bull", "bear",
             "aggressive", "neutral_debator", "conservative",
             "trader", "research_manager",
@@ -278,6 +280,12 @@ class TradingAgentsGraph:
                     get_income_statement,
                 ]
             ),
+            # MarketMind-subprocess analysts: no langchain tools needed,
+            # these analysts fetch data via internal subprocess calls.
+            # Empty ToolNode exists so the graph registration doesn't fail.
+            "quant_factor": ToolNode([]),
+            "capital_flow": ToolNode([]),
+            "sector_rotation": ToolNode([]),
         }
 
     def _resolve_benchmark(self, ticker: str) -> str:

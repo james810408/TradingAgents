@@ -51,6 +51,13 @@ _ENV_OVERRIDES = {
     # 12th Agent: 组合经理（Portfolio Manager）
     "TRADINGAGENTS_AGENT_PORTFOLIO_MANAGER_PROVIDER": "agent_portfolio_manager_provider",
     "TRADINGAGENTS_AGENT_PORTFOLIO_MANAGER_MODEL":    "agent_portfolio_manager_model",
+    # 15 agents: +3 new Analyst Agents (QuantFactor, CapitalFlow, SectorRotation)
+    "TRADINGAGENTS_AGENT_QUANT_FACTOR_PROVIDER":       "agent_quant_factor_provider",
+    "TRADINGAGENTS_AGENT_QUANT_FACTOR_MODEL":          "agent_quant_factor_model",
+    "TRADINGAGENTS_AGENT_CAPITAL_FLOW_PROVIDER":       "agent_capital_flow_provider",
+    "TRADINGAGENTS_AGENT_CAPITAL_FLOW_MODEL":          "agent_capital_flow_model",
+    "TRADINGAGENTS_AGENT_SECTOR_ROTATION_PROVIDER":    "agent_sector_rotation_provider",
+    "TRADINGAGENTS_AGENT_SECTOR_ROTATION_MODEL":       "agent_sector_rotation_model",
 }
 
 
@@ -140,6 +147,16 @@ DEFAULT_CONFIG = _apply_env_overrides({
     "agent_trader_model": None,
     "agent_research_manager_provider": None,
     "agent_research_manager_model": None,
+    # 12th Agent: 组合经理（Portfolio Manager）
+    "agent_portfolio_manager_provider": None,
+    "agent_portfolio_manager_model": None,
+    # 3 new Analyst Agents
+    "agent_quant_factor_provider": None,
+    "agent_quant_factor_model": None,
+    "agent_capital_flow_provider": None,
+    "agent_capital_flow_model": None,
+    "agent_sector_rotation_provider": None,
+    "agent_sector_rotation_model": None,
     # Sampling temperature, forwarded to every provider when set. None leaves
     # each provider at its own default. Lower values reduce run-to-run
     # variation on models that honor it; reasoning models largely ignore it

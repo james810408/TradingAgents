@@ -9,6 +9,7 @@ from tradingagents.agents import (
     create_aggressive_debator,
     create_bear_researcher,
     create_bull_researcher,
+    create_capital_flow_analyst,
     create_conservative_debator,
     create_fundamentals_analyst,
     create_market_analyst,
@@ -16,12 +17,15 @@ from tradingagents.agents import (
     create_neutral_debator,
     create_news_analyst,
     create_portfolio_manager,
+    create_quant_factor_analyst,
     create_research_manager,
+    create_sector_rotation_analyst,
     create_sentiment_analyst,
     create_trader,
 )
 from tradingagents.agents.utils.agent_states import AgentState
 
+from .a_share_gate import create_a_share_gate_node
 from .analyst_execution import build_analyst_execution_plan
 from .conditional_logic import ConditionalLogic
 
@@ -73,7 +77,8 @@ class GraphSetup:
         return self.agent_llms.get(mapped, self.quick_thinking_llm)
 
     def setup_graph(
-        self, selected_analysts=("market", "social", "news", "fundamentals")
+        self, selected_analysts=("market", "social", "news", "fundamentals",
+                                 "quant_factor", "capital_flow", "sector_rotation")
     ):
         """Set up and compile the agent workflow graph.
 
@@ -83,6 +88,9 @@ class GraphSetup:
                 - "social": Social media analyst
                 - "news": News analyst
                 - "fundamentals": Fundamentals analyst
+                - "quant_factor": Quant factor analyst
+                - "capital_flow": Capital flow analyst
+                - "sector_rotation": Sector rotation analyst
         """
         plan = build_analyst_execution_plan(selected_analysts)
 
@@ -91,6 +99,9 @@ class GraphSetup:
             "social": lambda: create_sentiment_analyst(self._get_llm("social")),
             "news": lambda: create_news_analyst(self._get_llm("news")),
             "fundamentals": lambda: create_fundamentals_analyst(self._get_llm("fundamentals")),
+            "quant_factor": lambda: create_quant_factor_analyst(self._get_llm("quant_factor")),
+            "capital_flow": lambda: create_capital_flow_analyst(self._get_llm("capital_flow")),
+            "sector_rotation": lambda: create_sector_rotation_analyst(self._get_llm("sector_rotation")),
         }
 
         # Create researcher and manager nodes
@@ -100,6 +111,7 @@ class GraphSetup:
             self._get_llm("research_manager") if "research_manager" in self.agent_llms else self.deep_thinking_llm
         )
         trader_node = create_trader(self._get_llm("trader"))
+        a_share_gate_node = create_a_share_gate_node()
 
         # Create risk analysis nodes
         aggressive_analyst = create_aggressive_debator(self._get_llm("aggressive"))
@@ -121,22 +133,20 @@ class GraphSetup:
         workflow.add_node("Bear Researcher", bear_researcher_node)
         workflow.add_node("Research Manager", research_manager_node)
         workflow.add_node("Trader", trader_node)
+        workflow.add_node("A Share Gate", a_share_gate_node)
         workflow.add_node("Aggressive Analyst", aggressive_analyst)
         workflow.add_node("Neutral Analyst", neutral_analyst)
         workflow.add_node("Conservative Analyst", conservative_analyst)
         workflow.add_node("Portfolio Manager", portfolio_manager_node)
 
         # Define edges
-        # Start with the first analyst
-        workflow.add_edge(START, plan.specs[0].agent_node)
-
-        # Connect analysts in sequence
-        for i, spec in enumerate(plan.specs):
+        # Parallel analysts: START fans out to all analysts simultaneously
+        for spec in plan.specs:
             current_analyst = spec.agent_node
             current_tools = spec.tool_node
             current_clear = spec.clear_node
 
-            # Add conditional edges for current analyst
+            # Add conditional edges for current analyst (tools or clear)
             workflow.add_conditional_edges(
                 current_analyst,
                 getattr(self.conditional_logic, f"should_continue_{spec.key}"),
@@ -144,11 +154,11 @@ class GraphSetup:
             )
             workflow.add_edge(current_tools, current_analyst)
 
-            # Connect to next analyst or to Bull Researcher if this is the last analyst
-            if i < len(plan.specs) - 1:
-                workflow.add_edge(current_clear, plan.specs[i + 1].agent_node)
-            else:
-                workflow.add_edge(current_clear, "Bull Researcher")
+            # All analysts start from START in parallel (fan-out)
+            workflow.add_edge(START, current_analyst)
+
+            # All analysts converge to Bull Researcher (fan-in)
+            workflow.add_edge(current_clear, "Bull Researcher")
 
         # Both research-debate edges share the complete DEBATE_PATH_MAP (#1088).
         for debate_node in ("Bull Researcher", "Bear Researcher"):
@@ -158,7 +168,16 @@ class GraphSetup:
                 DEBATE_PATH_MAP,
             )
         workflow.add_edge("Research Manager", "Trader")
-        workflow.add_edge("Trader", "Aggressive Analyst")
+        workflow.add_edge("Trader", "A Share Gate")
+        # A Share Gate conditional: route to risk debate if passed, or Portfolio Manager if rejected
+        workflow.add_conditional_edges(
+            "A Share Gate",
+            self.conditional_logic.should_route_from_gate,
+            {
+                "Aggressive Analyst": "Aggressive Analyst",
+                "Portfolio Manager": "Portfolio Manager",
+            },
+        )
         # All three risk edges share the complete RISK_ANALYSIS_PATH_MAP (#1088).
         for risk_node in ("Aggressive Analyst", "Conservative Analyst", "Neutral Analyst"):
             workflow.add_conditional_edges(
