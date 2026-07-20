@@ -105,7 +105,7 @@ class GraphSetup:
         aggressive_analyst = create_aggressive_debator(self._get_llm("aggressive"))
         neutral_analyst = create_neutral_debator(self._get_llm("neutral_debator"))
         conservative_analyst = create_conservative_debator(self._get_llm("conservative"))
-        portfolio_manager_node = create_portfolio_manager(self.deep_thinking_llm)
+        portfolio_manager_node = create_portfolio_manager(self._get_llm("portfolio_manager"))
 
         # Create workflow
         workflow = StateGraph(AgentState)

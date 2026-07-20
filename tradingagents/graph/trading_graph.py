@@ -123,6 +123,7 @@ class TradingAgentsGraph:
             "bull", "bear",
             "aggressive", "neutral_debator", "conservative",
             "trader", "research_manager",
+            "portfolio_manager",  # 12th Agent: 组合经理（最终决策聚合）
         ]
         for role in agent_roles:
             provider_key = f"agent_{role}_provider"

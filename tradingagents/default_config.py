@@ -48,6 +48,9 @@ _ENV_OVERRIDES = {
     "TRADINGAGENTS_AGENT_TRADER_MODEL":              "agent_trader_model",
     "TRADINGAGENTS_AGENT_RESEARCH_MANAGER_PROVIDER": "agent_research_manager_provider",
     "TRADINGAGENTS_AGENT_RESEARCH_MANAGER_MODEL":    "agent_research_manager_model",
+    # 12th Agent: 组合经理（Portfolio Manager）
+    "TRADINGAGENTS_AGENT_PORTFOLIO_MANAGER_PROVIDER": "agent_portfolio_manager_provider",
+    "TRADINGAGENTS_AGENT_PORTFOLIO_MANAGER_MODEL":    "agent_portfolio_manager_model",
 }
 
 
