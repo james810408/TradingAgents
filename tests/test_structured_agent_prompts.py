@@ -97,6 +97,7 @@ def test_portfolio_manager_prompt_states_constraint():
         "latest_speaker": "Neutral", "count": 1,
     }
     create_portfolio_manager(llm)({
+        "gate_passed": True,
         "company_of_interest": "NVDA",
         "risk_debate_state": risk,
         "investment_plan": "plan",

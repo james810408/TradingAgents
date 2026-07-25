@@ -26,6 +26,14 @@ def create_portfolio_manager(llm):
     structured_llm = bind_structured(llm, PortfolioDecision, "Portfolio Manager")
 
     def portfolio_manager_node(state) -> dict:
+        # Defense in depth (B1): if the A Share Gate already rejected this
+        # trade, return REJECTED immediately without calling the LLM.
+        if state.get("gate_passed") is not True:
+            return {
+                "final_trade_decision": "REJECTED",
+                "risk_debate_state": state.get("risk_debate_state", {}),
+            }
+
         instrument_context = get_instrument_context_from_state(state)
 
         history = state["risk_debate_state"]["history"]

@@ -123,15 +123,16 @@ class ConditionalLogic:
         return "Aggressive Analyst"
 
     def should_route_from_gate(self, state: AgentState) -> str:
-        """Route from A Share Gate: go to risk debate if gate passed, or PM if rejected.
+        """Route from A Share Gate: go to risk debate if gate passed, or END if rejected.
 
         The gate node sets ``gate_passed`` on the state. If it's explicitly False
-        (rule violation), skip risk debate and go straight to Portfolio Manager.
+        (rule violation), the trade is REJECTED and the graph terminates — the
+        Portfolio Manager must NOT be allowed to override the gate decision (B1).
         Otherwise proceed to Aggressive Analyst for normal risk debate.
         """
-        gate_passed = state.get("gate_passed", True)
-        if gate_passed is False:
-            return "Portfolio Manager"
+        gate_passed = state.get("gate_passed")
+        if gate_passed is not True:
+            return "END"
         return "Aggressive Analyst"
 
     def should_continue_risk_analysis(self, state: AgentState) -> str:

@@ -74,3 +74,9 @@ class AgentState(MessagesState):
     ]
     final_trade_decision: Annotated[str, "Final decision made by the Risk Analysts"]
     past_context: Annotated[str, "Memory log context injected at run start (same-ticker decisions + cross-ticker lessons)"]
+
+    # A Share Gate (terminal, fail-closed). Any non-True value MUST be treated
+    # as rejection by downstream nodes.
+    gate_passed: Annotated[bool, "True if A Share Gate approved the trade. Missing or non-True must be treated as False."]
+    gate_result: Annotated[dict, "A Share Gate raw result dict (passed/violations/...)."]
+    gate_violations: Annotated[list, "Human-readable list of A Share Gate violations."]

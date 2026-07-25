@@ -44,6 +44,10 @@ RISK_ANALYSIS_PATH_MAP = {
     "Neutral Analyst": "Neutral Analyst",
     "Portfolio Manager": "Portfolio Manager",
 }
+GATE_PATH_MAP = {
+    "Aggressive Analyst": "Aggressive Analyst",
+    "END": END,
+}
 
 
 class GraphSetup:
@@ -169,14 +173,11 @@ class GraphSetup:
             )
         workflow.add_edge("Research Manager", "Trader")
         workflow.add_edge("Trader", "A Share Gate")
-        # A Share Gate conditional: route to risk debate if passed, or Portfolio Manager if rejected
+        # A Share Gate conditional: route to risk debate if passed, or END if rejected
         workflow.add_conditional_edges(
             "A Share Gate",
             self.conditional_logic.should_route_from_gate,
-            {
-                "Aggressive Analyst": "Aggressive Analyst",
-                "Portfolio Manager": "Portfolio Manager",
-            },
+            GATE_PATH_MAP,
         )
         # All three risk edges share the complete RISK_ANALYSIS_PATH_MAP (#1088).
         for risk_node in ("Aggressive Analyst", "Conservative Analyst", "Neutral Analyst"):
