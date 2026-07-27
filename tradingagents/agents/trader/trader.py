@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import functools
+from typing import Any
 
 from langchain_core.messages import AIMessage
 
@@ -14,7 +15,7 @@ from tradingagents.agents.utils.agent_utils import (
 from tradingagents.agents.utils.structured import (
     NO_EXTERNAL_TOOLS,
     bind_structured,
-    invoke_structured_or_freetext,
+    invoke_structured_with_raw,
 )
 
 
@@ -50,7 +51,7 @@ def create_trader(llm):
             },
         ]
 
-        trader_plan = invoke_structured_or_freetext(
+        trader_plan, raw_proposal = invoke_structured_with_raw(
             structured_llm,
             llm,
             messages,
@@ -58,10 +59,15 @@ def create_trader(llm):
             "Trader",
         )
 
-        return {
+        result: dict[str, Any] = {
             "messages": [AIMessage(content=trader_plan)],
             "trader_investment_plan": trader_plan,
             "sender": name,
         }
+        # 存储原始 TraderProposal 给 B3 适配器使用
+        if raw_proposal is not None:
+            result["trader_proposal"] = raw_proposal
+
+        return result
 
     return functools.partial(trader_node, name="Trader")

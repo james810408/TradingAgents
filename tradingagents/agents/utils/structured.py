@@ -70,15 +70,34 @@ def invoke_structured_or_freetext(
     shape). The same value is forwarded to the free-text path so the
     fallback sees the same input the structured call did.
     """
+    rendered, _raw = invoke_structured_with_raw(
+        structured_llm, plain_llm, prompt, render, agent_name,
+    )
+    return rendered
+
+
+def invoke_structured_with_raw(
+    structured_llm: Any | None,
+    plain_llm: Any,
+    prompt: Any,
+    render: Callable[[T], str],
+    agent_name: str,
+) -> tuple[str, T | None]:
+    """Like ``invoke_structured_or_freetext`` but also returns the raw Pydantic instance.
+
+    Returns ``(rendered_markdown, raw_pydantic_instance_or_None)``.
+
+    The second element is ``None`` when the structured call fails and the
+    fallback to free-text is used.  Callers that need the raw object for
+    downstream processing (e.g. the B3 adapter) can access it here without
+    making a second LLM call.
+    """
     if structured_llm is not None:
         try:
             result = structured_llm.invoke(prompt)
             if result is None:
-                # A thinking model can answer in plain text instead of calling
-                # the tool, leaving the parser with nothing to return. Treat it
-                # as a structured miss and fall back, with a clear reason.
                 raise ValueError("structured output returned no parsed result")
-            return render(result)
+            return render(result), result
         except Exception as exc:
             logger.warning(
                 "%s: structured-output invocation failed (%s); retrying once as free text",
@@ -86,4 +105,4 @@ def invoke_structured_or_freetext(
             )
 
     response = plain_llm.invoke(prompt)
-    return response.content
+    return response.content, None

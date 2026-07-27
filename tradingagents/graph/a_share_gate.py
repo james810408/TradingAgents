@@ -15,6 +15,7 @@ from functools import wraps
 from typing import Any, Callable
 
 from tradingagents.contracts import OrderContract
+from tradingagents.contracts.adapter import trader_proposal_to_order_contract
 
 logger = logging.getLogger(__name__)
 
@@ -211,6 +212,51 @@ def create_a_share_gate_node():
                 "gate_result": result,
                 "gate_passed": True,
             }
+
+        # B3 adapter path: auto-construct OrderContract from TraderProposal + state
+        trader_proposal = state.get("trader_proposal")
+        if trader_proposal is not None:
+            ticker = state.get("company_of_interest", "")
+            try:
+                order_contract = trader_proposal_to_order_contract(
+                    trader_proposal, ticker, state,
+                )
+            except Exception:
+                logger.warning(
+                    "A Share Gate: failed to adapt TraderProposal to OrderContract; "
+                    "falling back to text parsing",
+                    exc_info=True,
+                )
+                order_contract = None
+
+            if order_contract is not None:
+                # Build stock_data and run rules (same logic as explicit path above)
+                stock_data = {}
+                for key in ("price", "limit_up", "limit_down", "suspended",
+                             "is_st", "delisting_period", "position"):
+                    val = state.get(key)
+                    if val is not None:
+                        stock_data[key] = val
+
+                result = check_a_share_rules(order_contract, stock_data)
+
+                if not result["passed"]:
+                    violations_text = "; ".join(result["violations"])
+                    logger.warning(
+                        "A Share Gate BLOCKED adaptation for %s: %s",
+                        ticker, violations_text,
+                    )
+                    return {
+                        "gate_result": result,
+                        "gate_passed": False,
+                        "final_trade_decision": "REJECTED",
+                        "gate_violations": result["violations"],
+                    }
+
+                return {
+                    "gate_result": result,
+                    "gate_passed": True,
+                }
 
         # Fallback: deprecated text-parsing path
         trader_plan = state.get("trader_investment_plan", "")
